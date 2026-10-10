@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#123B79">
+    <title>中国医保跨省异地直接结算统计情况（2020-2025）</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.1/dist/echarts.min.js"></script>
+    <style>
+        :root {
+            --blue: #165DFF;
+            --navy: #123B79;
+            --teal: #258A9B;
+            --ink: #17283E;
+            --muted: #63748A;
+            --line: #D9E2ED;
+            --paper: #FFFFFF;
+            --ground: #F1F5FA;
+            --warning: #8B5E18;
+            --warning-bg: #FFF5E5;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 24px 28px 30px;
+            color: var(--ink);
+            background: var(--ground);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+        }
+        .dashboard { width: min(100%, 1640px); margin: 0 auto; }
+        .page-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 20px;
+            padding: 2px 2px 17px;
+            border-bottom: 3px solid var(--blue);
+        }
+        h1 { margin: 0; color: var(--navy); font-size: 27px; line-height: 1.35; }
+        .subtitle { margin-top: 7px; color: var(--muted); font-size: 13px; }
+        .header-tag { color: var(--blue); font-size: 12px; font-weight: 700; white-space: nowrap; }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            margin: 16px 0;
+        }
+        .kpi {
+            min-width: 0;
+            padding: 15px 17px;
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-top: 3px solid var(--blue);
+            box-shadow: 0 3px 12px rgba(20, 49, 86, .045);
+        }
+        .kpi:nth-child(2) { border-top-color: var(--teal); }
+        .kpi:nth-child(3) { border-top-color: var(--navy); }
+        .kpi:nth-child(4) { border-top-color: #758BA9; }
+        .kpi-label { color: var(--muted); font-size: 13px; }
+        .kpi-value {
+            margin-top: 10px;
+            color: var(--navy);
+            font-size: 27px;
+            line-height: 1.2;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+        .kpi-unit { margin-left: 5px; color: var(--muted); font-size: 12px; font-weight: 400; }
+        .kpi-detail { margin-top: 7px; color: var(--muted); font-size: 11px; }
+        .panel {
+            min-width: 0;
+            margin-top: 14px;
+            padding: 14px 16px 12px;
+            background: var(--paper);
+            border: 1px solid var(--line);
+            box-shadow: 0 3px 12px rgba(20, 49, 86, .045);
+        }
+        .panel-heading {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 12px;
+            margin: 0 0 4px;
+        }
+        h2 { margin: 0; color: var(--navy); font-size: 15px; }
+        .panel-subtitle { color: var(--muted); font-size: 11px; }
+        .chart { width: 100%; height: 355px; }
+        .chart-short { height: 330px; }
+        .inline-note { margin: 3px 2px 0; color: #596A7E; font-size: 11px; line-height: 1.65; }
+        .support-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.05fr) minmax(350px, .95fr);
+            gap: 14px;
+            align-items: stretch;
+        }
+        .support-grid .panel { margin-top: 14px; }
+        .reference-panel { display: flex; flex-direction: column; }
+        .reference-intro { margin: 7px 0 12px; color: var(--muted); font-size: 11px; line-height: 1.6; }
+        .remote-table-wrap { overflow-x: auto; }
+        .remote-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        .remote-table th, .remote-table td {
+            padding: 9px 8px;
+            border-bottom: 1px solid #E8EDF3;
+            text-align: right;
+            white-space: nowrap;
+        }
+        .remote-table th { color: #40536B; background: #F3F6FA; font-weight: 600; }
+        .remote-table th:first-child, .remote-table td:first-child { text-align: left; }
+        .remote-table tr:last-child td { border-bottom: 0; }
+        .caution {
+            margin-top: auto;
+            padding: 11px 12px;
+            color: #744E16;
+            background: var(--warning-bg);
+            border-left: 3px solid #C2923D;
+            font-size: 11px;
+            line-height: 1.65;
+        }
+        .global-notes {
+            margin-top: 14px;
+            padding: 13px 16px;
+            background: #E8EEF6;
+            border-left: 3px solid #8C6A34;
+        }
+        .global-notes h2 { margin-bottom: 7px; font-size: 12px; }
+        .global-notes ul {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 4px 24px;
+            margin: 0;
+            padding-left: 18px;
+            color: #506177;
+            font-size: 10px;
+            line-height: 1.65;
+        }
+        .load-error {
+            margin: 14px 0;
+            padding: 12px;
+            color: #8B3434;
+            background: #FFF7F7;
+            border: 1px solid #E8BDBD;
+        }
+        @media (max-width: 1000px) {
+            body { padding: 18px 16px 24px; }
+            .support-grid { grid-template-columns: 1fr; }
+            .chart, .chart-short { height: 330px; }
+        }
+        @media (max-width: 680px) {
+            body { padding: 14px 11px 20px; }
+            .page-header { align-items: flex-start; flex-direction: column; gap: 7px; }
+            h1 { font-size: 22px; }
+            .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+            .kpi { padding: 12px 11px; }
+            .kpi-value { font-size: 22px; }
+            .panel { padding: 12px 10px; }
+            .panel-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
+            .chart, .chart-short { height: 300px; }
+            .global-notes ul { grid-template-columns: 1fr; }
+        }
+        @media (max-width: 390px) {
+            .kpi-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+<!-- Code injected by Five-server -->
+  <script async data-id="five-server" data-file="/Users/gaohanxi/Desktop/医保看板/index.html" type="application/javascript" src="/fiveserver.js"></script>
+  </head>
+<body>
+<main class="dashboard">
+    <header class="page-header">
+        <div>
+            <h1>中国医保跨省异地直接结算统计情况（2020-2025）</h1>
+            <div class="subtitle">跨省直接结算、联网定点医药机构及异地就医参考数据</div>
+        </div>
+        <div class="header-tag">医疗保障 · 统计监测</div>
+    </header>
+
+    <section class="kpi-grid" aria-label="2025年核心指标">
+        <article class="kpi" id="kpi-hospital" tabindex="0">
+            <div class="kpi-label">2025 住院跨省直接结算人次</div>
+            <div class="kpi-value"></div>
+            <div class="kpi-detail">同比信息悬浮查看</div>
+        </article>
+        <article class="kpi" id="kpi-outpatient" tabindex="0">
+            <div class="kpi-label">2025 门诊跨省直接结算人次</div>
+            <div class="kpi-value"></div>
+            <div class="kpi-detail">同比信息悬浮查看</div>
+        </article>
+        <article class="kpi" id="kpi-total" tabindex="0">
+            <div class="kpi-label">2025 全口径直接结算总人次</div>
+            <div class="kpi-value"></div>
+            <div class="kpi-detail">采用文档摘要值；分项有舍入差异</div>
+        </article>
+        <article class="kpi" id="kpi-reduce" tabindex="0">
+            <div class="kpi-label">2025 合计减少垫付金额</div>
+            <div class="kpi-value"></div>
+            <div class="kpi-detail">同比信息悬浮查看</div>
+        </article>
+    </section>
+
+    <div id="load-error" class="load-error" role="alert" hidden></div>
+
+    <section class="panel" aria-labelledby="settlement-heading">
+        <div class="panel-heading">
+            <h2 id="settlement-heading">2020-2025住院&门诊跨省直接结算人次变化</h2>
+            <span class="panel-subtitle">单位：万人次</span>
+        </div>
+        <div id="settlement-chart" class="chart" role="img" aria-label="2020至2025住院及门诊跨省直接结算人次折线图"></div>
+        <p class="inline-note">门诊：2020年仅有12个试点省份累计值，不纳入年度序列；2021-2023年不含药店购药，2024-2025年起纳入普通门诊、门慢门特及药店购药，前后口径不完全可比。</p>
+    </section>
+
+    <section class="panel" aria-labelledby="fund-heading">
+        <div class="panel-heading">
+            <h2 id="fund-heading">跨省直接结算医保基金支付时序</h2>
+            <span class="panel-subtitle">单位：亿元</span>
+        </div>
+        <div id="fund-chart" class="chart" role="img" aria-label="住院和门诊跨省直接结算医保基金支付柱状图"></div>
+    </section>
+
+    <section class="support-grid" aria-label="联网定点机构规模与异地就医参考">
+        <article class="panel">
+            <div class="panel-heading">
+                <h2>历年跨省联网定点医药机构规模</h2>
+                <span class="panel-subtitle">年末时点值 · 单位：万家</span>
+            </div>
+            <div id="institution-chart" class="chart chart-short" role="img" aria-label="跨省联网定点医疗机构和零售药店规模分组柱状图"></div>
+            <p class="inline-note">2020年尚无药店分项数据，按缺失展示、不作插值。医疗机构按年度 CSV 内优先记录展示；2021-2022年不同网络类别口径见对应年份数据及图表提示。</p>
+        </article>
+        <aside class="panel reference-panel">
+            <div class="panel-heading">
+                <h2>职工&居民异地就医参考信息</h2>
+                <span class="panel-subtitle">单位：万人次</span>
+            </div>
+            <p class="reference-intro">下表为异地就医年度人次参考数据，与跨省直接结算指标分开呈现。</p>
+            <div class="remote-table-wrap">
+                <table class="remote-table">
+                    <thead><tr><th>年份</th><th>职工医保</th><th>居民医保</th></tr></thead>
+                    <tbody id="remote-table-body"></tbody>
+                </table>
+            </div>
+            <div class="caution">“异地就医”包含省内异地及省外异地，并包含未直接结算的手工报销情形；不可与跨省直接结算人次相加、合并统计或放入同一根时序线。</div>
+        </aside>
+    </section>
+
+    <footer class="global-notes">
+        <h2>全局口径说明</h2>
+        <ul>
+            <li>门诊口径变更：2021-2023年门诊跨省直接结算不含药店购药；2024-2025年包含普通门诊、门慢门特及药店购药，前后不完全可比。</li>
+            <li>2025年住院1582.30万人次与门诊29200万人次分项相加为30782.30万人次；文档摘要合计为30800万人次，两者存在四舍五入差异，KPI按摘要值展示。</li>
+            <li>质量标记 DERIVED 表示派生计算值，若展示须在提示及本说明中标注：【*本数值由原始指标计算派生，非官方直接公布】。本页图表不展示 DERIVED 指标。</li>
+            <li>“异地就医”口径包含省内异地、省外异地及未直接结算情形；“跨省直接结算”是跨省且直接结算的不同口径，两者不得相加、合并统计。</li>
+            <li>历史累计值（例如2020年门诊试点累计302万人次、截至2021年末累计1251.44万人次）不属于当年年度值，不纳入年度折线图。</li>
+            <li>缺失值保持缺失，不插值；联网定点机构优先使用 CSV 中的小数记录，原始表述中的近似数仅作备注。</li>
+        </ul>
+    </footer>
+</main>
+
+<script>
+    // 所需指标从内嵌CSV解析；浏览器无需读取外部数据文件。
+    const csvText = `year,indicator_code,indicator_name,value,unit,data_type,quality_tag,raw_text,derived_formula,remark
+2020,cross_hosp_settle_person,住院费用跨省直接结算人次(当年),300.23,万人次,年度实际值,OK,"全年住院跨省异地就医585万人次，其中跨省直接结算300.23万人次",,"2020当年住院直接结算"
+2021,cross_hosp_settle_person,住院费用跨省直接结算人次(当年),440.59,万人次,年度实际值,OK,"2021年当年国家平台直接结算440.59万人次",,"住院当年结算"
+2022,cross_hosp_settle_person,住院费用跨省直接结算人次(当年),568.79,万人次,年度实际值,OK,"2022年，住院费用跨省直接结算568.79万人次",,""
+2023,cross_hosp_settle_person,住院费用跨省直接结算人次(当年),1125.48,万人次,年度实际值,OK,"2023年，住院费用跨省直接结算1125.48万人次",,""
+2024,cross_hosp_settle_person,住院费用跨省直接结算人次(当年),1433.56,万人次,年度实际值,OK,"2024年，全国住院费用跨省直接结算1433.56万人次",,""
+2025,cross_hosp_settle_person,住院费用跨省直接结算人次(当年),1582.30,万人次,年度实际值,OK,"2025年，全国住院费用跨省直接结算1582.30万人次",,""
+2021,cross_outpatient_settle_person_year,门诊费用跨省直接结算人次(2021当年),949.60,万人次,年度实际值,OK,"门诊费用跨省直接结算949.60万人次",,"时序折线使用该当年值；不含药店购药"
+2022,cross_outpatient_settle_person_year,门诊费用跨省直接结算人次(2022当年),3243.56,万人次,年度实际值,OK,"门诊费用跨省直接结算3243.56万人次",,"不含药店购药"
+2023,cross_outpatient_settle_person_year,门诊费用跨省直接结算人次(2023当年),11800,万人次,年度实际值,OK,"2023年，门诊费用跨省直接结算1.18亿人次",,"不含药店购药"
+2024,cross_outpatient_settle_person_year,全国门诊跨省直接结算人次(2024当年含药店),22400,万人次,年度实际值,OK,"全国门诊(包含普通门诊、门诊慢特病、药店购药)费用跨省直接结算2.24亿人次",,"口径包含药店购药，与2021-2023不可直接同比"
+2025,cross_outpatient_settle_person_year,全国门诊跨省直接结算人次(2025当年含药店),29200,万人次,年度实际值,OK,"全国门诊（包含普通门诊、门诊慢特病、药店购药）费用跨省直接结算2.92亿人次",,"包含药店购药；分项求和1582.30+29200=30782.30万，摘要合计30800万存在四舍五入差异"
+2020,cross_hosp_fund_pay,住院费用跨省直接结算医保基金支付,438.73,亿元,年度实际值,OK,"基金支付438.73亿元",,""
+2021,cross_hosp_fund_pay,住院费用跨省直接结算医保基金支付,624.63,亿元,年度实际值,OK,"医保基金支付624.63亿元",,""
+2022,cross_hosp_fund_pay,住院费用跨省直接结算医保基金支付,762.33,亿元,年度实际值,OK,"医保基金支付762.33亿元",,"官方原始值，减少垫付等价基金支付"
+2023,cross_hosp_fund_pay,住院费用跨省直接结算医保基金支付,1351.26,亿元,年度实际值,OK,"基金支付1351.26亿元",,""
+2024,cross_hosp_fund_pay,住院费用跨省直接结算医保基金支付,1586.73,亿元,年度实际值,OK,"基金支付1586.73亿元",,""
+2025,cross_hosp_fund_pay,住院费用跨省直接结算医保基金支付,1620.05,亿元,年度实际值,OK,"基金支付1620.05亿元",,""
+2021,cross_outpatient_fund_pay_year,门诊费用跨省基金支付(2021当年),13.21,亿元,年度实际值,OK,"医保基金支付13.21亿元",,""
+2022,cross_outpatient_fund_pay_year,门诊费用跨省基金支付(2022当年),46.85,亿元,年度实际值,OK,"基金支付46.85亿元",,""
+2023,cross_outpatient_fund_pay_year,门诊费用跨省基金支付(2023当年),185.48,亿元,年度实际值,OK,"基金支付185.48亿元",,""
+2024,cross_outpatient_fund_pay_year,全国门诊基金支付(2024当年含药店),360.51,亿元,年度实际值,OK,"基金支付360.51亿元",,"口径包含药店购药"
+2025,cross_outpatient_fund_pay_year,全国门诊基金支付(2025当年含药店),455.01,亿元,年度实际值,OK,"基金支付455.01亿元",,"包含药店购药"
+2020,cross_hosp_fixed_hospital,住院跨省直接结算定点医疗机构(年末),4.44,万家,年末时点值,OK,"截至2020年底，住院费用跨省直接结算定点医疗机构数量为4.44万家",,"年末时点，不含药店；原文44413家换算"
+2021,cross_hosp_fixed_hospital,住院跨省直接结算定点医疗机构(年末),5.27,万家,年末时点值,OK,"截至2021年底，住院费用跨省直接结算定点医疗机构数量为5.27万家",,""
+2022,cross_hosp_fixed_hospital,住院跨省联网定点医疗机构(年末),6.27,万家,年末时点值,OK,"住院和门诊费用跨省联网定点医疗机构分别达到6.27万家和8.87万家",,"优先高精度小数；原文同时有近似6.3万家"
+2023,cross_hosp_fixed_hospital,跨省联网定点医疗机构(年末),19.8,万家,年末时点值,OK,"其中跨省联网定点医疗机构数量为19.8万家",,"截至2023年底"
+2024,cross_hosp_fixed_hospital,跨省联网定点医疗机构(年末),23.03,万家,年末时点值,OK,"其中跨省联网定点医疗机构23.03万家",,"截至2024年底"
+2025,cross_hosp_fixed_hospital,跨省联网定点医疗机构(年末),24.18,万家,年末时点值,OK,"其中跨省联网定点医疗机构24.18万家",,"截至2025年底"
+2021,cross_fixed_pharmacy,联网定点零售药店(年末),8.27,万家,年末时点值,OK,"联网定点零售药店8.27万家",,"截至2021年底"
+2022,cross_fixed_pharmacy,跨省联网定点零售药店(年末),22.62,万家,年末时点值,OK,"跨省联网定点零售药店数量达到22.62万家",,"原文近似22.6万家"
+2023,cross_fixed_pharmacy,跨省联网定点零售药店(年末),35.24,万家,年末时点值,OK,"定点零售药店35.24万家",,"截至2023年底"
+2024,cross_fixed_pharmacy,跨省联网定点零售药店(年末),41.37,万家,年末时点值,OK,"跨省联网定点零售药店41.37万家",,"截至2024年底"
+2025,cross_fixed_pharmacy,跨省联网定点零售药店(年末),41.40,万家,年末时点值,OK,"跨省联网定点零售药店41.40万家",,"截至2025年底"
+2020,worker_remote_person,职工医保异地就医人次,4831,万人次,年度实际值,OK,"职工医保参保人员异地就医4831万人次",,"含省内异地，非仅跨省"
+2021,worker_remote_person,职工医保异地就医人次,6434,万人次,年度实际值,OK,"2021年，职工医保参保人员异地就医6434万人次",,"含省内异地"
+2022,worker_remote_person,职工医保异地就医人次,7299,万人次,年度实际值,OK,"职工医保异地就医7299万人次",,"含省内异地"
+2023,worker_remote_person,职工医保异地就医人次,16100,万人次,年度实际值,OK,"职工医保异地就医1.61亿人次",,"含省内异地就医1.01亿，省外0.6亿"
+2024,worker_remote_person,职工医保异地就医人次,26200,万人次,年度实际值,OK,"职工医保异地就医2.62亿人次",,"含省内异地"
+2025,worker_remote_person,职工医保异地就医人次,29300,万人次,年度实际值,OK,"职工医保异地就医2.93亿人次",,"含省内异地"
+2020,resident_remote_person,居民医保异地就医人次,3407,万人次,年度实际值,OK,"居民医保参保人员异地就医3407万人次",,"含省内异地，非仅跨省"
+2021,resident_remote_person,居民医保异地就医人次,4318,万人次,年度实际值,OK,"居民医保参保人员异地就医4318万人次",,"含省内异地"
+2022,resident_remote_person,居民医保异地就医人次,3751,万人次,年度实际值,OK,"居民医保异地就医3751万人次",,"含省内异地"
+2023,resident_remote_person,居民医保异地就医人次,8214.36,万人次,年度实际值,OK,"居民医保异地就医8214.36万人次",,"含省内、省外异地"
+2024,resident_remote_person,居民医保异地就医人次,13400,万人次,年度实际值,OK,"居民医保异地就医1.34亿人次",,"含省内异地"
+2025,resident_remote_person,居民医保异地就医人次,18000,万人次,年度实际值,OK,"居民医保异地就医1.80亿人次",,"含省内异地"
+2025,cross_all_settle_person_summary,跨省异地直接结算合计(摘要),30800,万人次,年度实际值,OK,"2025年跨省异地直接结算（含住院、普通门诊、门慢门特和药店购药）3.08亿人次",,"文档摘要合计，与分项求和存在舍入差异"
+2025,cross_all_advance_reduce,跨省异地直接结算合计减少垫付,2075.06,亿元,年度实际值,OK,"减少垫付2075.06亿元",,""
+2022,cross_total_advance_reduce,住院+门诊跨省直接结算合计减少垫付,809.18,亿元,年度合计派生,DERIVED,"无原文直接记录","762.33 + 46.85","派生求和指标，上图必须备注"`;
+
+    // RFC 4180 兼容的简易 CSV 解析器，可处理引号内逗号与双引号。
+    function parseCSV(text) {
+        const rows = [];
+        let row = [];
+        let field = "";
+        let quoted = false;
+        for (let i = 0; i < text.length; i += 1) {
+            const char = text[i];
+            if (quoted) {
+                if (char === '"' && text[i + 1] === '"') {
+                    field += '"';
+                    i += 1;
+                } else if (char === '"') {
+                    quoted = false;
+                } else {
+                    field += char;
+                }
+            } else if (char === '"') {
+                quoted = true;
+            } else if (char === ",") {
+                row.push(field);
+                field = "";
+            } else if (char === "\n") {
+                row.push(field.replace(/\r$/, ""));
+                rows.push(row);
+                row = [];
+                field = "";
+            } else {
+                field += char;
+            }
+        }
+        if (field.length || row.length) {
+            row.push(field.replace(/\r$/, ""));
+            rows.push(row);
+        }
+        const headers = rows.shift();
+        return rows.filter(values => values.length === headers.length).map(values =>
+            Object.fromEntries(headers.map((header, index) => [header, values[index]]))
+        );
+    }
+
+    const records = parseCSV(csvText).map(record => ({
+        ...record,
+        year: Number(record.year),
+        value: Number(record.value)
+    }));
+    const years = ["2020", "2021", "2022", "2023", "2024", "2025"];
+    const findRecord = (year, code) => records.find(item => item.year === Number(year) && item.indicator_code === code);
+    const annualValues = (code, field = "value") => years.map(year => {
+        const record = findRecord(year, code);
+        return record ? Number(record[field]) : null;
+    });
+    const fmt = (value, digits = 2) => value == null ? "暂无数据" : Number(value).toLocaleString("zh-CN", {
+        minimumFractionDigits: digits,
+        maximumFractionDigits: digits
+    });
+
+    function setKpi(elementId, record, unit, yoyText) {
+        const element = document.getElementById(elementId);
+        if (!record) return;
+        element.querySelector(".kpi-value").innerHTML =
+            `${fmt(record.value)}<span class="kpi-unit">${unit}</span>`;
+        element.title = `${record.year}年：${record.raw_text}${yoyText ? `\n同比：${yoyText}` : ""}`;
+    }
+
+    const hospital2025 = findRecord(2025, "cross_hosp_settle_person");
+    const outpatient2025 = findRecord(2025, "cross_outpatient_settle_person_year");
+    const total2025 = findRecord(2025, "cross_all_settle_person_summary");
+    const advance2025 = findRecord(2025, "cross_all_advance_reduce");
+    const hospital2024 = findRecord(2024, "cross_hosp_settle_person");
+    const outpatient2024 = findRecord(2024, "cross_outpatient_settle_person_year");
+    const percentChange = (current, previous) =>
+        `${((current.value / previous.value - 1) * 100).toFixed(1)}%`;
+
+    setKpi("kpi-hospital", hospital2025, "万人次", `+${percentChange(hospital2025, hospital2024)}`);
+    setKpi("kpi-outpatient", outpatient2025, "万人次", `+${percentChange(outpatient2025, outpatient2024)}（2024-2025均含药店购药）`);
+    setKpi("kpi-total", total2025, "万人次", "无可比年度全口径摘要值");
+    setKpi("kpi-reduce", advance2025, "亿元", "无可比年度全口径合计值");
+
+    const workerRecords = records.filter(item => item.indicator_code === "worker_remote_person");
+    const residentRecords = records.filter(item => item.indicator_code === "resident_remote_person");
+    const workerByYear = new Map(workerRecords.map(item => [item.year, item]));
+    const residentByYear = new Map(residentRecords.map(item => [item.year, item]));
+    document.getElementById("remote-table-body").innerHTML = years.map(year => {
+        const worker = workerByYear.get(Number(year));
+        const resident = residentByYear.get(Number(year));
+        return `<tr><td>${year}</td><td>${worker ? fmt(worker.value) : "—"}</td><td>${resident ? fmt(resident.value) : "—"}</td></tr>`;
+    }).join("");
+
+    const commonTooltip = {
+        trigger: "axis",
+        axisPointer: { type: "line" },
+        confine: true
+    };
+    const yearsNumeric = years.map(Number);
+    const settlementChart = echarts.init(document.getElementById("settlement-chart"));
+    settlementChart.setOption({
+        color: ["#165DFF", "#258A9B"],
+        tooltip: {
+            ...commonTooltip,
+            formatter: params => {
+                const year = Number(params[0].axisValue);
+                const hospital = findRecord(year, "cross_hosp_settle_person");
+                const outpatient = findRecord(year, "cross_outpatient_settle_person_year");
+                const hospitalFund = findRecord(year, "cross_hosp_fund_pay");
+                const outpatientFund = findRecord(year, "cross_outpatient_fund_pay_year");
+                const lines = [`${year}年`];
+                if (hospital) {
+                    lines.push(`住院直接结算：${fmt(hospital.value)} 万人次`);
+                    if (hospitalFund) lines.push(`住院基金支付：${fmt(hospitalFund.value)} 亿元`);
+                }
+                if (outpatient) {
+                    lines.push(`门诊当年直接结算：${fmt(outpatient.value)} 万人次`);
+                    if (outpatientFund) lines.push(`门诊基金支付：${fmt(outpatientFund.value)} 亿元`);
+                    if (outpatient.quality_tag === "DERIVED") lines.push("【*本数值由原始指标计算派生，非官方直接公布】");
+                } else {
+                    lines.push("门诊当年直接结算：暂无年度值");
+                }
+                return lines.join("<br>");
+            }
+        },
+        legend: { top: 2, textStyle: { color: "#52647A" } },
+        grid: { left: 75, right: 28, top: 45, bottom: 47 },
+        xAxis: {
+            type: "category",
+            name: "年份",
+            nameLocation: "middle",
+            nameGap: 30,
+            data: years,
+            axisLine: { lineStyle: { color: "#AAB8C8" } },
+            axisLabel: { color: "#596A7E" }
+        },
+        yAxis: {
+            type: "value",
+            name: "跨省直接结算人次（万人次）",
+            nameLocation: "middle",
+            nameGap: 54,
+            min: 0,
+            axisLabel: { color: "#596A7E" },
+            splitLine: { lineStyle: { color: "#E8EDF3" } }
+        },
+        series: [
+            {
+                name: "住院费用跨省直接结算",
+                type: "line",
+                data: annualValues("cross_hosp_settle_person"),
+                symbol: "circle",
+                symbolSize: 8,
+                lineStyle: { width: 3 },
+                connectNulls: false
+            },
+            {
+                name: "门诊费用跨省直接结算（当年）",
+                type: "line",
+                data: annualValues("cross_outpatient_settle_person_year"),
+                symbol: "circle",
+                symbolSize: 8,
+                lineStyle: { width: 3 },
+                connectNulls: false
+            }
+        ]
+    });
+
+    const fundChart = echarts.init(document.getElementById("fund-chart"));
+    fundChart.setOption({
+        color: ["#165DFF", "#258A9B"],
+        tooltip: {
+            trigger: "axis",
+            axisPointer: { type: "shadow" },
+            confine: true,
+            formatter: params => {
+                const year = Number(params[0].axisValue);
+                return [`${year}年`, ...params.map(item => {
+                    const code = item.seriesName === "住院基金支付" ? "cross_hosp_fund_pay" : "cross_outpatient_fund_pay_year";
+                    const record = findRecord(year, code);
+                    if (!record) return `${item.marker}${item.seriesName}：暂无数据`;
+                    const derived = record.quality_tag === "DERIVED"
+                        ? `<br>【*本数值由原始指标计算派生，非官方直接公布】` : "";
+                    return `${item.marker}${item.seriesName}：${fmt(record.value)} 亿元${derived}`;
+                })].join("<br>");
+            }
+        },
+        legend: { top: 2, textStyle: { color: "#52647A" } },
+        grid: { left: 67, right: 28, top: 45, bottom: 47 },
+        xAxis: {
+            type: "category",
+            name: "年份",
+            nameLocation: "middle",
+            nameGap: 30,
+            data: years,
+            axisLine: { lineStyle: { color: "#AAB8C8" } },
+            axisLabel: { color: "#596A7E" }
+        },
+        yAxis: {
+            type: "value",
+            name: "医保基金支付（亿元）",
+            nameLocation: "middle",
+            nameGap: 48,
+            min: 0,
+            axisLabel: { color: "#596A7E" },
+            splitLine: { lineStyle: { color: "#E8EDF3" } }
+        },
+        series: [
+            {
+                name: "住院基金支付",
+                type: "bar",
+                barMaxWidth: 30,
+                data: annualValues("cross_hosp_fund_pay"),
+                itemStyle: { borderRadius: [3, 3, 0, 0] }
+            },
+            {
+                name: "门诊基金支付",
+                type: "bar",
+                barMaxWidth: 30,
+                data: annualValues("cross_outpatient_fund_pay_year"),
+                itemStyle: { borderRadius: [3, 3, 0, 0] }
+            }
+        ]
+    });
+
+    const institutionChart = echarts.init(document.getElementById("institution-chart"));
+    institutionChart.setOption({
+        color: ["#165DFF", "#258A9B"],
+        tooltip: {
+            trigger: "axis",
+            axisPointer: { type: "shadow" },
+            confine: true,
+            formatter: params => {
+                const year = Number(params[0].axisValue);
+                return [`${year}年（年末）`, ...params.map(item => {
+                    if (item.value == null) return `${item.marker}${item.seriesName}：缺失（不插值）`;
+                    const code = item.seriesName === "医疗机构" ? "cross_hosp_fixed_hospital" : "cross_fixed_pharmacy";
+                    const record = findRecord(year, code);
+                    const remark = record && record.remark ? `<br>备注：${record.remark}` : "";
+                    return `${item.marker}${item.seriesName}：${fmt(item.value)} 万家${remark}`;
+                })].join("<br>");
+            }
+        },
+        legend: { top: 2, textStyle: { color: "#52647A" } },
+        grid: { left: 62, right: 20, top: 45, bottom: 44 },
+        xAxis: {
+            type: "category",
+            name: "年份",
+            nameLocation: "middle",
+            nameGap: 28,
+            data: years,
+            axisLine: { lineStyle: { color: "#AAB8C8" } },
+            axisLabel: { color: "#596A7E" }
+        },
+        yAxis: {
+            type: "value",
+            name: "定点机构（万家）",
+            nameLocation: "middle",
+            nameGap: 43,
+            min: 0,
+            axisLabel: { color: "#596A7E" },
+            splitLine: { lineStyle: { color: "#E8EDF3" } }
+        },
+        series: [
+            {
+                name: "医疗机构",
+                type: "bar",
+                barMaxWidth: 28,
+                data: annualValues("cross_hosp_fixed_hospital"),
+                itemStyle: { borderRadius: [3, 3, 0, 0] }
+            },
+            {
+                name: "定点零售药店",
+                type: "bar",
+                barMaxWidth: 28,
+                data: annualValues("cross_fixed_pharmacy"),
+                itemStyle: { borderRadius: [3, 3, 0, 0] }
+            }
+        ]
+    });
+
+    // 图表使用统一响应式尺寸，窄屏时自动重排。
+    const charts = [settlementChart, fundChart, institutionChart];
+    window.addEventListener("resize", () => charts.forEach(chart => chart.resize()));
+</script>
+</body>
+</html>
